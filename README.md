@@ -104,9 +104,9 @@ docker compose up --build
 처음 실행할 때 Java/DB 이미지를 내려받으므로 몇 분 걸릴 수 있습니다. 로그에
 `Started RegionalInsightApiApplication`이 보이면 브라우저에서 아래 주소를 엽니다.
 
-- 대시보드: [http://localhost:8080](http://localhost:8080)
-- API 헬스 체크: [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health)
-- 전체 요약 API: [http://localhost:8080/api/v1/overview](http://localhost:8080/api/v1/overview)
+- 대시보드: [http://localhost:8085](http://localhost:8085)
+- API 헬스 체크: [http://localhost:8085/actuator/health](http://localhost:8085/actuator/health)
+- 전체 요약 API: [http://localhost:8085/api/v1/overview](http://localhost:8085/api/v1/overview)
 
 종료:
 
@@ -156,19 +156,19 @@ python -m regional_insight.cli all
 
 ```bash
 # 전체 요약
-curl http://localhost:8080/api/v1/overview
+curl http://localhost:8085/api/v1/overview
 
 # 의료 접근 우선순위 상위 5개 지역
-curl 'http://localhost:8080/api/v1/health-access?limit=5'
+curl 'http://localhost:8085/api/v1/health-access?limit=5'
 
 # 특정 경기도 지역
-curl http://localhost:8080/api/v1/health-access/연천군
+curl http://localhost:8085/api/v1/health-access/연천군
 
 # 주택시장 강도 상위 5개 지역
-curl 'http://localhost:8080/api/v1/housing?limit=5'
+curl 'http://localhost:8085/api/v1/housing?limit=5'
 
 # 특정 서울 자치구
-curl http://localhost:8080/api/v1/housing/서초구
+curl http://localhost:8085/api/v1/housing/서초구
 ```
 
 `limit`은 의료 API에서 1–31, 주택 API에서 1–25만 허용됩니다. 잘못된 값에는 HTTP 400,
@@ -213,7 +213,7 @@ cd backend
 
 # 전체 스택 상태
 docker compose ps
-curl http://localhost:8080/actuator/health
+curl http://localhost:8085/actuator/health
 ```
 
 GitHub Actions는 pull request와 `main` push마다 다음을 확인합니다.
@@ -301,4 +301,3 @@ Backend · Cloud · Data Engineer in progress
 - LinkedIn: [linkedin.com/in/taeyoung-kim-9b743140b](https://www.linkedin.com/in/taeyoung-kim-9b743140b/)
 - Tech Blog: [taeyoungkim.dev/ko](https://www.taeyoungkim.dev/ko)
 - Email: [taeyoungkdev@gmail.com](mailto:taeyoungkdev@gmail.com)
-

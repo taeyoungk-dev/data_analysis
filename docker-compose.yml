@@ -35,7 +35,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-regional-local}
       REDIS_HOST: redis
     ports:
-      - "8080:8080"
+      - "8085:8085"
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,4 +44,3 @@ services:
 
 volumes:
   postgres-data:
-
