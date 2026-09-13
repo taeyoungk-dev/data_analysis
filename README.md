@@ -293,9 +293,14 @@ CSV만 선별했고, 로컬 절대경로·체크포인트·중복 파일·직렬
 
 ## Author
 
-**Taeyoung Kim (김태영)**  
-Cloud & Infrastructure Engineer → Software / Data / AI Engineer  
-[LinkedIn](https://www.linkedin.com/in/katiekim412) · [GitHub](https://github.com/taeyoungk-dev) · katiekim412@gmail.com
+**김태영**
+
+Backend · Cloud · Data Engineer in progress
+
+- GitHub: [@taeyoungk-dev](https://github.com/taeyoungk-dev)
+- LinkedIn: [linkedin.com/in/taeyoung-kim-9b743140b](https://www.linkedin.com/in/taeyoung-kim-9b743140b/)
+- Tech Blog: [taeyoungkim.dev/ko](https://www.taeyoungkim.dev/ko)
+- Email: [taeyoungkdev@gmail.com](mailto:taeyoungkdev@gmail.com)
 
 Software is released under the [MIT License](LICENSE). Public datasets retain their original terms.
 
