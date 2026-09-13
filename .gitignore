@@ -1,0 +1,22 @@
+.DS_Store
+.env
+.idea/
+.vscode/
+*.iml
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+analytics/artifacts/*.joblib
+
+# Java / Gradle
+.gradle/
+backend/build/
+
+# Local runtime
+*.log
+

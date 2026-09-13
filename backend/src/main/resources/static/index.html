@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="공공데이터 기반 지역 의료 접근성과 주택시장 분석 대시보드">
+  <title>Regional Insight Korea</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="hero">
+    <nav class="nav" aria-label="주요 메뉴">
+      <a class="brand" href="#top" aria-label="Regional Insight Korea 홈">
+        <span class="brand-mark">RI</span>
+        <span>REGIONAL INSIGHT</span>
+      </a>
+      <a class="nav-link" href="/actuator/health">API STATUS <span class="status-dot"></span></a>
+    </nav>
+
+    <div class="hero-grid" id="top">
+      <div>
+        <p class="eyebrow">PUBLIC DATA · DECISION INTELLIGENCE</p>
+        <h1>지역의 숫자를<br><em>의사결정의 언어</em>로.</h1>
+        <p class="hero-copy">
+          경기도 고령층 의료 접근성과 서울 아파트 시장을 하나의 재현 가능한
+          데이터 파이프라인으로 분석합니다.
+        </p>
+      </div>
+      <div class="hero-panel" aria-label="프로젝트 데이터 흐름">
+        <div class="flow-step"><b>01</b><span>공공 CSV</span></div>
+        <div class="flow-line"></div>
+        <div class="flow-step"><b>02</b><span>Python ETL</span></div>
+        <div class="flow-line"></div>
+        <div class="flow-step"><b>03</b><span>Spring API</span></div>
+      </div>
+    </div>
+
+    <section class="summary" aria-label="데이터 요약">
+      <article><strong id="healthCount">—</strong><span>경기도 시·군</span></article>
+      <article><strong id="housingCount">—</strong><span>서울 자치구</span></article>
+      <article><strong>5 yrs</strong><span>주택 거래 추세</span></article>
+      <article><strong>10 min</strong><span>Redis 캐시 TTL</span></article>
+    </section>
+  </header>
+
+  <main>
+    <section class="section intro">
+      <div>
+        <p class="eyebrow dark">TWO QUESTIONS, ONE PIPELINE</p>
+        <h2>서로 다른 문제를<br>같은 엔지니어링 원칙으로</h2>
+      </div>
+      <p>
+        인구 대비 의료 공급의 불균형과 주택시장의 가격·성장·유동성을 각각
+        투명한 지표로 계산했습니다. 점수는 우선순위 탐색용이며 정책 판단이나
+        투자 추천을 대신하지 않습니다.
+      </p>
+    </section>
+
+    <section class="section data-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow coral">HEALTH ACCESS · GYEONGGI</p>
+          <h2>고령층 의료 접근 우선 지역</h2>
+        </div>
+        <p>고령인구 비율 55% + 고령인구 1만 명당 의원 부족도 45%</p>
+      </div>
+      <div class="table-card">
+        <div class="chart" id="healthChart" aria-label="의료 접근 우선순위 막대 차트"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>지역</th><th>고령인구</th><th>활성 의원</th><th>1만 명당 의원</th><th>우선점수</th></tr></thead>
+            <tbody id="healthTable"><tr><td colspan="5">데이터를 불러오는 중입니다.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section data-section housing">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow mint">HOUSING MARKET · SEOUL</p>
+          <h2>2024 시장 강도 상위 지역</h2>
+        </div>
+        <p>㎡당 중위가격 50% + 5년 CAGR 30% + 거래량 20%</p>
+      </div>
+      <div class="table-card dark-card">
+        <div class="chart" id="housingChart" aria-label="주택시장 강도 막대 차트"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>지역</th><th>거래량</th><th>중위 거래가</th><th>5년 CAGR</th><th>시장점수</th></tr></thead>
+            <tbody id="housingTable"><tr><td colspan="5">데이터를 불러오는 중입니다.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section methodology">
+      <p class="eyebrow dark">ENGINEERING, NOT JUST NOTEBOOKS</p>
+      <h2>분석이 서비스가 되기까지</h2>
+      <div class="method-grid">
+        <article><span>01</span><h3>Reproducible ETL</h3><p>인코딩·숫자형·영업상태를 코드로 정규화하고 산출물을 버전 관리합니다.</p></article>
+        <article><span>02</span><h3>Tested Metrics</h3><p>점수 경계와 5년 CAGR, 데이터 결합 규칙을 자동 테스트합니다.</p></article>
+        <article><span>03</span><h3>Production API</h3><p>Spring Data JPA, PostgreSQL, Redis 캐시와 헬스 체크로 조회 계층을 구성합니다.</p></article>
+        <article><span>04</span><h3>Honest ML</h3><p>고정 시드 홀드아웃과 MAE·R²를 기록하고 모델의 용도를 명확히 제한합니다.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>REGIONAL INSIGHT KOREA</span>
+    <span>Built by Taeyoung Kim · Data × Backend × Cloud</span>
+  </footer>
+  <script src="/app.js" defer></script>
+</body>
+</html>
+

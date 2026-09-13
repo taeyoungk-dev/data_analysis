@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: regional-insight-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/regional_insight}
+    username: ${DB_USERNAME:regional}
+    password: ${DB_PASSWORD:regional-local}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      repositories:
+        enabled: false
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+
+info:
+  app:
+    name: Regional Insight Korea
+    version: 1.0.0
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local,test
+  datasource:
+    url: jdbc:h2:mem:regional-insight;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  cache:
+    type: simple
+  data:
+    redis:
+      repositories:
+        enabled: false
+  h2:
+    console:
+      enabled: true

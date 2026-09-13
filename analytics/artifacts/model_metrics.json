@@ -1,0 +1,9 @@
+{
+  "model": "HistGradientBoostingRegressor",
+  "train_rows": 44954,
+  "test_rows": 11239,
+  "mae_krw": 147249114,
+  "r2": 0.9307,
+  "split": "random holdout (80/20, random_state=42)",
+  "warning": "Learning benchmark only; not an appraisal or investment recommendation."
+}
