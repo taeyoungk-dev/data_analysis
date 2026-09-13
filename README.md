@@ -302,5 +302,3 @@ Backend · Cloud · Data Engineer in progress
 - Tech Blog: [taeyoungkim.dev/ko](https://www.taeyoungkim.dev/ko)
 - Email: [taeyoungkdev@gmail.com](mailto:taeyoungkdev@gmail.com)
 
-Software is released under the [MIT License](LICENSE). Public datasets retain their original terms.
-
