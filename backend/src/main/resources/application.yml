@@ -40,7 +40,7 @@ management:
 info:
   app:
     name: Regional Insight Korea
-    version: 1.0.0
+    version: 1.1.0
 
 ---
 spring:
@@ -60,3 +60,8 @@ spring:
   h2:
     console:
       enabled: true
+
+management:
+  health:
+    redis:
+      enabled: false

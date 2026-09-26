@@ -34,6 +34,10 @@ public class HealthAccessMetric {
     private String priorityBand;
     @Column(name = "period")
     private String period;
+    @Column(name = "latitude")
+    private BigDecimal latitude;
+    @Column(name = "longitude")
+    private BigDecimal longitude;
 
     protected HealthAccessMetric() {}
 
@@ -47,4 +51,6 @@ public class HealthAccessMetric {
     public BigDecimal getPriorityScore() { return priorityScore; }
     public String getPriorityBand() { return priorityBand; }
     public String getPeriod() { return period; }
+    public BigDecimal getLatitude() { return latitude; }
+    public BigDecimal getLongitude() { return longitude; }
 }

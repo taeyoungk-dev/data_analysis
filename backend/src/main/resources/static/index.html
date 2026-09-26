@@ -3,113 +3,252 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="공공데이터 기반 지역 의료 접근성과 주택시장 분석 대시보드">
+  <meta name="description" content="경기도 고령층 의료 접근성과 서울 주택시장을 비교하는 공공데이터 대시보드">
+  <meta name="theme-color" content="#12372f">
   <title>Regional Insight Korea</title>
-  <link rel="stylesheet" href="/styles.css?v=20260913-5">
+  <link rel="stylesheet" href="/styles.css?v=20260927-1">
 </head>
 <body>
-  <header class="hero">
-    <nav class="nav" aria-label="주요 메뉴">
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+  <header class="site-header">
+    <nav class="nav shell" aria-label="주요 메뉴">
       <a class="brand" href="#top" aria-label="Regional Insight Korea 홈">
-        <span class="brand-mark">RI</span>
-        <span>REGIONAL INSIGHT</span>
+        <span class="brand-mark" aria-hidden="true">RI</span>
+        <span>Regional Insight</span>
       </a>
-      <a class="nav-link" href="/actuator/health">API STATUS <span class="status-dot"></span></a>
+      <div class="nav-links">
+        <a href="#health-explorer">의료 접근성</a>
+        <a href="#housing">주택시장</a>
+        <a href="#method">산정 기준</a>
+      </div>
+      <a class="api-status" href="/actuator/health" aria-label="API 상태 확인">
+        <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+        <span id="apiStatus">연결 확인 중</span>
+      </a>
     </nav>
-
-    <div class="hero-grid" id="top">
-      <div>
-        <p class="eyebrow">PUBLIC DATA · DECISION INTELLIGENCE</p>
-        <h1>지역의 숫자를<br><em>의사결정의 언어</em>로.</h1>
-        <p class="hero-copy">
-          경기도 고령층 의료 접근성과 서울 아파트 시장을 하나의 재현 가능한
-          데이터 파이프라인으로 분석합니다.
-        </p>
-      </div>
-      <div class="hero-panel" aria-label="프로젝트 데이터 흐름">
-        <div class="flow-step"><b>01</b><span>공공 CSV</span></div>
-        <div class="flow-line"></div>
-        <div class="flow-step"><b>02</b><span>Python ETL</span></div>
-        <div class="flow-line"></div>
-        <div class="flow-step"><b>03</b><span>Spring API</span></div>
-      </div>
-    </div>
-
-    <section class="summary" aria-label="데이터 요약">
-      <article><strong id="healthCount">—</strong><span>경기도 시·군</span></article>
-      <article><strong id="housingCount">—</strong><span>서울 자치구</span></article>
-      <article><strong>5 yrs</strong><span>주택 거래 추세</span></article>
-      <article><strong>10 min</strong><span>Redis 캐시 TTL</span></article>
-    </section>
   </header>
 
-  <main>
-    <section class="section intro">
-      <div>
-        <p class="eyebrow dark">TWO QUESTIONS, ONE PIPELINE</p>
-        <h2>서로 다른 문제를<br>같은 엔지니어링 원칙으로</h2>
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">경기도 고령층 의료 접근성 · 2025년 4월</p>
+          <h1>어디에 의료 접근 지원이 더 필요할까요?</h1>
+          <p class="lead">
+            고령인구 비율과 의원 공급을 같은 기준으로 비교하고, 지역별 우선 진료과목
+            공급까지 확인합니다.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#health-explorer">지역 비교하기</a>
+            <a class="button secondary" href="#method">지표 읽는 법</a>
+          </div>
+        </div>
+
+        <aside class="hero-signal" aria-labelledby="heroSignalTitle">
+          <div class="signal-topline">
+            <span>현재 우선 확인 지역</span>
+            <span class="band high">높음</span>
+          </div>
+          <h2 id="heroSignalTitle">데이터를 불러오는 중입니다</h2>
+          <div class="signal-score">
+            <strong id="heroPriorityScore">—</strong>
+            <span>/ 100 우선점수</span>
+          </div>
+          <dl class="signal-metrics">
+            <div><dt>고령인구 비율</dt><dd id="heroElderlyShare">—</dd></div>
+            <div><dt>고령인구 1만 명당 의원</dt><dd id="heroClinicRate">—</dd></div>
+          </dl>
+          <p>점수는 정책 대상을 좁히는 선별 지표이며 의료의 질이나 이동시간을 뜻하지 않습니다.</p>
+        </aside>
       </div>
-      <p>
-        인구 대비 의료 공급의 불균형과 주택시장의 가격·성장·유동성을 각각
-        투명한 지표로 계산했습니다. 점수는 우선순위 탐색용이며 정책 판단이나
-        투자 추천을 대신하지 않습니다.
-      </p>
+
+      <div class="shell summary" aria-label="분석 요약">
+        <article><span>분석 지역</span><strong id="healthCount">—</strong><small>경기도 시·군</small></article>
+        <article><span>높은 우선순위</span><strong id="highPriorityCount">—</strong><small>점수 70 이상</small></article>
+        <article><span>영업 중 의원</span><strong id="clinicCount">—</strong><small>주소 정규화 후</small></article>
+        <article><span>분석 기준월</span><strong id="healthPeriod">—</strong><small>주민등록인구</small></article>
+      </div>
     </section>
 
-    <section class="section data-section">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow coral">HEALTH ACCESS · GYEONGGI</p>
-          <h2>고령층 의료 접근 우선 지역</h2>
+    <section class="section health-section" id="health-explorer">
+      <div class="shell">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">의료 접근성 탐색</p>
+            <h2>31개 시·군을 같은 기준으로 비교</h2>
+          </div>
+          <p>
+            원천 데이터의 시군명 오류를 실제 주소로 보정했습니다. 점이 클수록 우선점수가 높고,
+            표의 지역을 선택하면 진료과목별 공급을 확인할 수 있습니다.
+          </p>
         </div>
-        <p>고령인구 비율 55% + 고령인구 1만 명당 의원 부족도 45%</p>
+
+        <div class="controls" aria-label="의료 접근성 필터">
+          <label class="search-field">
+            <span>지역 검색</span>
+            <input id="regionSearch" type="search" placeholder="예: 연천군" autocomplete="off">
+          </label>
+          <label>
+            <span>우선 구간</span>
+            <select id="bandFilter">
+              <option value="ALL">전체</option>
+              <option value="HIGH">높음</option>
+              <option value="WATCH">관찰</option>
+              <option value="BALANCED">균형</option>
+            </select>
+          </label>
+          <label>
+            <span>정렬 기준</span>
+            <select id="healthSort">
+              <option value="priority">우선점수 높은 순</option>
+              <option value="elderly">고령인구 비율 높은 순</option>
+              <option value="supply">의원 공급 낮은 순</option>
+              <option value="region">지역명 순</option>
+            </select>
+          </label>
+          <p class="result-count" id="resultCount" aria-live="polite">—</p>
+        </div>
+
+        <div class="explorer-grid">
+          <article class="panel map-panel">
+            <div class="panel-heading">
+              <div><span class="kicker">좌표 기반 분포</span><h3>의료 접근 우선 지역</h3></div>
+              <div class="legend" aria-label="우선 구간 범례">
+                <span><i class="legend-dot high"></i>높음</span>
+                <span><i class="legend-dot watch"></i>관찰</span>
+                <span><i class="legend-dot balanced"></i>균형</span>
+              </div>
+            </div>
+            <div class="map-wrap">
+              <svg id="healthMap" class="health-map" viewBox="0 0 560 620" role="img" aria-label="경기도 시군별 의료 접근 우선점수 좌표 분포도"></svg>
+              <div class="map-tooltip" id="mapTooltip" role="status" hidden></div>
+            </div>
+            <p class="caption">행정 경계 지도가 아닌, 지역별 의원 주소 중앙값을 이용한 상대적 위치입니다.</p>
+          </article>
+
+          <article class="panel ranking-panel">
+            <div class="panel-heading">
+              <div><span class="kicker">비교 목록</span><h3>지역 순위</h3></div>
+              <span class="caption">지역을 선택해 상세 보기</span>
+            </div>
+            <div class="ranking-list" id="healthRanking" aria-live="polite">
+              <p class="loading">데이터를 불러오는 중입니다.</p>
+            </div>
+          </article>
+        </div>
+
+        <article class="detail-panel" id="regionDetail" aria-labelledby="detailRegion">
+          <div class="detail-header">
+            <div>
+              <p class="eyebrow">선택 지역 상세</p>
+              <div class="title-line">
+                <h2 id="detailRegion">—</h2>
+                <span class="band" id="detailBand">—</span>
+              </div>
+              <p id="detailSummary">지역을 선택하면 세부 지표를 확인할 수 있습니다.</p>
+            </div>
+            <div class="detail-score"><span>우선점수</span><strong id="detailScore">—</strong></div>
+          </div>
+
+          <dl class="metric-grid">
+            <div><dt>전체 인구</dt><dd id="detailPopulation">—</dd></div>
+            <div><dt>65세 이상 인구</dt><dd id="detailElderlyPopulation">—</dd></div>
+            <div><dt>고령인구 비율</dt><dd id="detailElderlyShare">—</dd></div>
+            <div><dt>영업 중 의원</dt><dd id="detailClinics">—</dd></div>
+            <div><dt>고령인구 1만 명당 의원</dt><dd id="detailClinicRate">—</dd></div>
+          </dl>
+
+          <div class="specialty-layout">
+            <div class="specialty-copy">
+              <span class="kicker">진료과목 참고 비교</span>
+              <h3>고령층 이용 비중과 지역 공급</h3>
+              <p>
+                참고 자료의 다빈도 진료과목 비중과 선택 지역의 해당 진료과목 표방 의원 수를 나란히 봅니다.
+                자료에 기준연도와 지역 범위가 없어 우선점수에는 반영하지 않았습니다.
+              </p>
+              <p class="source-note" id="specialtySource">출처 정보를 불러오는 중입니다.</p>
+            </div>
+            <div>
+              <div class="specialty-head" aria-hidden="true"><span>진료과목</span><span>이용 비중</span><span>1만 명당 의원</span></div>
+              <div class="specialty-list" id="specialtyList">
+                <p class="loading">진료과목 데이터를 불러오는 중입니다.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <details class="table-details">
+          <summary>31개 지역 전체 표 보기</summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>지역</th><th>고령인구 비율</th><th>65세 이상 인구</th><th>영업 중 의원</th><th>1만 명당 의원</th><th>우선점수</th><th>구간</th></tr>
+              </thead>
+              <tbody id="healthTable"><tr><td colspan="7">데이터를 불러오는 중입니다.</td></tr></tbody>
+            </table>
+          </div>
+        </details>
       </div>
-      <div class="table-card">
-        <div class="chart" id="healthChart" aria-label="의료 접근 우선순위 막대 차트"></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>지역</th><th>고령인구</th><th>활성 의원</th><th>1만 명당 의원</th><th>우선점수</th></tr></thead>
-            <tbody id="healthTable"><tr><td colspan="5">데이터를 불러오는 중입니다.</td></tr></tbody>
+    </section>
+
+    <section class="section housing-section" id="housing">
+      <div class="shell">
+        <div class="section-heading inverse">
+          <div>
+            <p class="eyebrow">별도 분석 · 서울 2024</p>
+            <h2>주택시장 강도</h2>
+          </div>
+          <p>
+            의료 접근성과 결합하지 않은 독립 지표입니다. ㎡당 가격, 2020–2024 CAGR,
+            거래량으로 서울 25개 자치구 내부 상대 순위를 보여줍니다.
+          </p>
+        </div>
+        <div class="housing-grid">
+          <article class="housing-highlight">
+            <span class="kicker">시장 강도 1위</span>
+            <h3 id="housingLeader">—</h3>
+            <strong id="housingLeaderScore">—</strong>
+            <p id="housingLeaderMeta">데이터를 불러오는 중입니다.</p>
+          </article>
+          <article class="housing-ranking" id="housingChart" aria-label="주택시장 강도 상위 지역"></article>
+        </div>
+        <div class="table-wrap housing-table-wrap">
+          <table class="housing-table">
+            <thead><tr><th>지역</th><th>거래량</th><th>중위 거래가</th><th>㎡당 중위가격</th><th>5년 CAGR</th><th>시장점수</th></tr></thead>
+            <tbody id="housingTable"><tr><td colspan="6">데이터를 불러오는 중입니다.</td></tr></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <section class="section data-section housing">
-      <div class="section-heading">
+    <section class="section method-section" id="method">
+      <div class="shell method-grid">
         <div>
-          <p class="eyebrow mint">HOUSING MARKET · SEOUL</p>
-          <h2>2024 시장 강도 상위 지역</h2>
+          <p class="eyebrow">지표 읽는 법</p>
+          <h2>선별은 빠르게, 해석은 신중하게</h2>
         </div>
-        <p>㎡당 중위가격 50% + 5년 CAGR 30% + 거래량 20%</p>
-      </div>
-      <div class="table-card dark-card">
-        <div class="chart" id="housingChart" aria-label="주택시장 강도 막대 차트"></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>지역</th><th>거래량</th><th>중위 거래가</th><th>5년 CAGR</th><th>시장점수</th></tr></thead>
-            <tbody id="housingTable"><tr><td colspan="5">데이터를 불러오는 중입니다.</td></tr></tbody>
-          </table>
+        <div class="method-list">
+          <article><span>01</span><div><h3>수요</h3><p>고령인구 비율의 경기도 내 상대 순위를 55% 반영합니다.</p></div></article>
+          <article><span>02</span><div><h3>공급</h3><p>고령인구 1만 명당 영업 중 의원이 적을수록 45%의 가중치를 높게 부여합니다.</p></div></article>
+          <article><span>03</span><div><h3>한계</h3><p>병상, 의료진 규모, 이동시간, 진료 품질과 인접 지역 이용은 포함하지 않습니다.</p></div></article>
         </div>
-      </div>
-    </section>
-
-    <section class="section methodology">
-      <p class="eyebrow dark">ENGINEERING, NOT JUST NOTEBOOKS</p>
-      <h2>분석이 서비스가 되기까지</h2>
-      <div class="method-grid">
-        <article><span>01</span><h3>Reproducible ETL</h3><p>인코딩·숫자형·영업상태를 코드로 정규화하고 산출물을 버전 관리합니다.</p></article>
-        <article><span>02</span><h3>Tested Metrics</h3><p>점수 경계와 5년 CAGR, 데이터 결합 규칙을 자동 테스트합니다.</p></article>
-        <article><span>03</span><h3>Production API</h3><p>Spring Data JPA, PostgreSQL, Redis 캐시와 헬스 체크로 조회 계층을 구성합니다.</p></article>
-        <article><span>04</span><h3>Honest ML</h3><p>고정 시드 홀드아웃과 MAE·R²를 기록하고 모델의 용도를 명확히 제한합니다.</p></article>
       </div>
     </section>
   </main>
 
   <footer>
-    <span>REGIONAL INSIGHT KOREA</span>
-    <span>Built by Taeyoung Kim · Data × Backend × Cloud</span>
+    <div class="shell footer-inner">
+      <div><strong>Regional Insight Korea</strong><span>공공데이터 기반 지역 분석</span></div>
+      <p>정책 판단, 감정평가 또는 투자 추천을 대신하지 않습니다.</p>
+    </div>
   </footer>
-  <script src="/app.js" defer></script>
+
+  <div class="error-toast" id="errorToast" role="alert" hidden>
+    <span>데이터 연결에 실패했습니다.</span>
+    <button id="retryButton" type="button">다시 시도</button>
+  </div>
+  <noscript>이 대시보드는 데이터를 표시하기 위해 JavaScript가 필요합니다.</noscript>
+  <script src="/app.js?v=20260927-1" defer></script>
 </body>
 </html>

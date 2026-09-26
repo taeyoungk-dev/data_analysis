@@ -14,7 +14,9 @@ public record HealthAccessResponse(
         BigDecimal clinicsPer10kElderly,
         BigDecimal priorityScore,
         String priorityBand,
-        String period) implements Serializable {
+        String period,
+        BigDecimal latitude,
+        BigDecimal longitude) implements Serializable {
 
     static HealthAccessResponse from(HealthAccessMetric metric) {
         return new HealthAccessResponse(
@@ -26,6 +28,8 @@ public record HealthAccessResponse(
                 metric.getClinicsPer10kElderly(),
                 metric.getPriorityScore(),
                 metric.getPriorityBand(),
-                metric.getPeriod());
+                metric.getPeriod(),
+                metric.getLatitude(),
+                metric.getLongitude());
     }
 }

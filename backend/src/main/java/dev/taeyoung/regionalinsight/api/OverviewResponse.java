@@ -4,6 +4,8 @@ import java.io.Serializable;
 
 public record OverviewResponse(
         long healthRegions,
+        long highPriorityRegions,
+        long activeClinics,
         long housingRegions,
         HealthAccessResponse highestHealthPriority,
         HousingMarketResponse hottestHousingMarket,

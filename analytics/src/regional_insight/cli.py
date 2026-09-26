@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .etl import build_health_access, build_housing_market
+from .etl import build_health_access, build_health_specialties, build_housing_market
 from .export import export_outputs
 from .model import train_baseline
 
@@ -18,15 +18,34 @@ MIGRATION_PATH = (
     REPOSITORY_DIR / "backend" / "src" / "main" / "resources" / "db" / "migration"
     / "V2__seed_analytics.sql"
 )
+SPECIALTY_MIGRATION_PATH = (
+    REPOSITORY_DIR / "backend" / "src" / "main" / "resources" / "db" / "migration"
+    / "V3__add_health_specialty_profiles.sql"
+)
 
 
 def build() -> None:
     health = build_health_access(
         RAW_DIR / "gyeonggi_population_2025_04.csv", RAW_DIR / "gyeonggi_clinics.csv"
     )
+    specialties = build_health_specialties(
+        RAW_DIR / "gyeonggi_population_2025_04.csv",
+        RAW_DIR / "gyeonggi_clinics.csv",
+        RAW_DIR / "senior_disease_specialties.csv",
+    )
     housing = build_housing_market(sorted(RAW_DIR.glob("seoul_apartments_*.csv")))
-    export_outputs(health, housing, PROCESSED_DIR, MIGRATION_PATH)
-    print(f"Built {len(health)} health rows and {len(housing)} housing rows.")
+    export_outputs(
+        health,
+        housing,
+        specialties,
+        PROCESSED_DIR,
+        MIGRATION_PATH,
+        SPECIALTY_MIGRATION_PATH,
+    )
+    print(
+        f"Built {len(health)} health rows, {len(specialties)} specialty rows "
+        f"and {len(housing)} housing rows."
+    )
 
 
 def main() -> None:
@@ -42,4 +61,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

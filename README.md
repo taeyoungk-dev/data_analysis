@@ -35,6 +35,9 @@ an ML benchmark, CI and a responsive dashboard.
 1. **경기도에서 고령인구 비율은 높고 의원 공급은 상대적으로 부족한 곳은 어디인가?**
 2. **서울에서 현재 가격, 5년 가격 변화, 거래 유동성을 함께 볼 때 시장 강도가 높은 곳은 어디인가?**
 
+의료 접근성 화면에서는 지역 검색·우선 구간 필터·좌표 분포와 함께, 참고 자료의 고령층
+다빈도 진료과목별 지역 의원 공급도 확인할 수 있습니다.
+
 두 데이터는 지역 범위와 의미가 다르므로 하나의 “살기 좋은 지역 점수”로 억지로 합치지
 않았습니다. 하나의 플랫폼 안에서 독립된 도메인 지표로 제공하는 것이 데이터 해석상 더
 정직한 설계입니다.
@@ -45,7 +48,7 @@ an ML benchmark, CI and a responsive dashboard.
 
 | 분석 | 범위 | 우선순위 1위 | 핵심 수치 |
 |---|---:|---|---|
-| 고령층 의료 접근성 | 경기도 31개 시·군 | 연천군 | 고령인구 33.29%, 고령인구 1만 명당 의원 21.96개, 우선점수 98.50 |
+| 고령층 의료 접근성 | 경기도 31개 시·군 | 연천군 | 고령인구 33.29%, 고령인구 1만 명당 의원 15.37개, 우선점수 97.00 |
 | 주택시장 강도 | 서울 25개 자치구 | 서초구 | 2024 중위 거래가 23.5억 원, 2020–2024 가격/㎡ CAGR 11.14%, 시장점수 93.75 |
 
 주택가격 ML 기준선은 2024년 56,193건을 고정 시드로 80:20 분리했습니다.
@@ -77,7 +80,8 @@ an ML benchmark, CI and a responsive dashboard.
 flowchart LR
     A[고령인구 CSV] --> P[Python ETL]
     B[의원 현황 CSV] --> P
-    C[아파트 실거래 CSV<br>2020-2024] --> P
+    C[고령층 다빈도<br>진료과목 CSV] --> P
+    H[아파트 실거래 CSV<br>2020-2024] --> P
     P --> D[Analytics Marts]
     P --> M[ML Benchmark]
     D --> F[Flyway Migration]
@@ -115,7 +119,9 @@ docker compose down
 ```
 
 DB 데이터까지 초기화하려면 `docker compose down -v`를 사용합니다. 이 명령은 로컬 Docker
-volume의 PostgreSQL 데이터도 삭제하므로 재생성이 필요할 때만 실행하세요.
+volume의 PostgreSQL 데이터도 삭제하므로 재생성이 필요할 때만 실행하세요. 이전 버전에서
+이번 리뉴얼 버전으로 올린 뒤 Flyway checksum 오류가 발생한다면 한 번 초기화한 후 다시
+`docker compose up --build`를 실행합니다.
 
 ### Docker 없이 Java API 실행
 
@@ -146,9 +152,11 @@ python -m regional_insight.cli all
 생성 결과:
 
 - `analytics/data/processed/health_access.csv`
+- `analytics/data/processed/health_specialties.csv`
 - `analytics/data/processed/housing_market.csv`
 - `analytics/artifacts/model_metrics.json`
 - `backend/src/main/resources/db/migration/V2__seed_analytics.sql`
+- `backend/src/main/resources/db/migration/V3__add_health_specialty_profiles.sql`
 
 학습된 `*.joblib` 파일은 크기와 재현 가능성을 고려해 Git에 포함하지 않습니다.
 
@@ -163,6 +171,9 @@ curl 'http://localhost:8085/api/v1/health-access?limit=5'
 
 # 특정 경기도 지역
 curl http://localhost:8085/api/v1/health-access/연천군
+
+# 특정 지역의 고령층 우선 진료과목별 의원 공급
+curl http://localhost:8085/api/v1/health-access/연천군/specialties
 
 # 주택시장 강도 상위 5개 지역
 curl 'http://localhost:8085/api/v1/housing?limit=5'
@@ -184,8 +195,10 @@ priority_score =
   + 고령인구 1만 명당 활성 의원 수의 역 percentile × 0.45
 ```
 
-`영업/정상`, `영업중` 상태만 활성 의원으로 셉니다. 이 점수는 수요와 공급의 1차 선별
-지표이며 진료과목, 병상, 이동시간, 의료의 질과 인접 시·군 이용은 포함하지 않습니다.
+`영업/정상`, `영업중` 상태만 활성 의원으로 셉니다. 원천 `시군명`과 주소가 다르면 경기도
+주소에서 시·군을 다시 추출합니다. 진료과목별 공급은 별도 참고 지표로 제공하고 기준연도가
+명시되지 않은 다빈도질병 자료는 우선점수에 섞지 않습니다. 이 점수는 수요와 공급의 1차
+선별 지표이며 병상, 이동시간, 의료의 질과 인접 시·군 이용은 포함하지 않습니다.
 
 ### 주택시장 강도점수
 
@@ -249,7 +262,7 @@ data_analysis/
 
 | 기존 자산 | 이 프로젝트에서의 확장 |
 |---|---|
-| [`android`](https://github.com/taeyoungk-dev/android) — 경기도 고령인구·의원 분석 | 운영 상태 필터, 인구 대비 공급 지표, 우선순위 점수, 자동 ETL/테스트/API |
+| [`android`](https://github.com/taeyoungk-dev/android) — 경기도 고령인구·의원 분석 | 주소 기반 지역 오류 보정, 인구 대비 공급 지표, 진료과목 프로필, 좌표 분포, 자동 ETL/테스트/API |
 | [`python-data-analysis-practice`](https://github.com/taeyoungk-dev/python-data-analysis-practice) — 서울 아파트 분석 | 5개년 CAGR, 자치구 mart, ML benchmark, 재현 가능한 패키지 |
 
 기존 노트북의 학습 흔적은 원본 저장소에 보존했습니다. 이 저장소에는 서비스 재현에 필요한
@@ -275,7 +288,7 @@ CSV만 선별했고, 로컬 절대경로·체크포인트·중복 파일·직렬
 ## 다음 단계
 
 - Testcontainers 기반 PostgreSQL·Redis 통합 테스트
-- 시·군 경계 GeoJSON과 이동시간을 결합한 지도/공간 접근성 분석
+- 시·군 경계 GeoJSON과 이동시간을 결합한 실제 행정경계 지도·공간 접근성 분석
 - 시간 순서 기반 ML 검증과 drift monitoring
 - Kafka를 통한 원천 데이터 갱신 이벤트 처리
 - AWS ECS/RDS/ElastiCache 또는 Kubernetes 배포와 OpenTelemetry 관측성
@@ -285,6 +298,7 @@ CSV만 선별했고, 로컬 절대경로·체크포인트·중복 파일·직렬
 
 - 고령인구: 행정안전부 주민등록 인구통계 계열, 2025년 4월 스냅샷
 - 의원 현황: 경기도 공공데이터 계열, 수집 당시 스냅샷
+- 고령층 다빈도 진료과목: 기존 프로젝트 참고자료. 기준연도와 지역 범위가 없어 참고 비교에만 사용
 - 아파트 실거래: 국토교통부 실거래가 공개시스템/API 계열, 2020–2024년 스냅샷
 
 원본 데이터의 소유권·이용조건은 각 제공기관에 있습니다. 이 저장소의 원본 CSV에는 주소와

@@ -22,7 +22,7 @@ jobs:
       - run: ruff check analytics
       - run: pytest analytics/tests
       - run: python -m regional_insight.cli build
-      - run: git diff --exit-code -- analytics/data/processed backend/src/main/resources/db/migration/V2__seed_analytics.sql
+      - run: git diff --exit-code -- analytics/data/processed backend/src/main/resources/db/migration
 
   backend:
     runs-on: ubuntu-latest

@@ -4,7 +4,8 @@
 flowchart LR
     A[행정안전부<br>고령인구 CSV] --> P[Python ETL]
     B[경기도<br>의원 CSV] --> P
-    C[국토교통부<br>실거래 CSV 2020-2024] --> P
+    C[고령층 다빈도<br>진료과목 CSV] --> P
+    H[국토교통부<br>실거래 CSV 2020-2024] --> P
     P --> D[검증된 Analytics Marts]
     P --> M[ML Benchmark<br>MAE / R²]
     D --> F[Flyway Seed Migration]
@@ -21,6 +22,11 @@ flowchart LR
   housing prices have different populations and geography, so a single “livability score” would
   imply a relationship the data cannot support.
 - Python owns ingestion, cleaning, feature engineering, scoring and model evaluation.
+- Clinic regions are normalized from a valid Gyeonggi address before the unreliable source region
+  label is used as a fallback. Median clinic coordinates support the dashboard's relative location
+  plot without requiring a map API key.
+- The disease-specialty workbook lacks a stated period and geographic scope. The service therefore
+  exposes it only beside local specialty supply and does not use it in the priority score.
 - Java owns validated query APIs, caching, persistence and the browser-facing application.
 - Generated CSV marts and a Flyway migration form a reviewable data contract between the layers.
 - Local profile uses H2 and the Docker profile uses PostgreSQL + Redis. This keeps onboarding fast
@@ -34,4 +40,3 @@ flowchart LR
 - API list limits are validated, entities are not exposed directly, database schema is validated at
   startup, and the container runs as a non-root user.
 - Redis entries expire after 10 minutes. Actuator exposes only health, info and metrics endpoints.
-

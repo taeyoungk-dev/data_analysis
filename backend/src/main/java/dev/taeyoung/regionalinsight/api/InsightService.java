@@ -9,17 +9,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import dev.taeyoung.regionalinsight.health.HealthAccessRepository;
+import dev.taeyoung.regionalinsight.health.HealthSpecialtyRepository;
 import dev.taeyoung.regionalinsight.housing.HousingMarketRepository;
 
 @Service
 public class InsightService {
 
     private final HealthAccessRepository healthRepository;
+    private final HealthSpecialtyRepository specialtyRepository;
     private final HousingMarketRepository housingRepository;
 
     public InsightService(
-            HealthAccessRepository healthRepository, HousingMarketRepository housingRepository) {
+            HealthAccessRepository healthRepository,
+            HealthSpecialtyRepository specialtyRepository,
+            HousingMarketRepository housingRepository) {
         this.healthRepository = healthRepository;
+        this.specialtyRepository = specialtyRepository;
         this.housingRepository = housingRepository;
     }
 
@@ -29,6 +34,8 @@ public class InsightService {
         var housing = housing(1);
         return new OverviewResponse(
                 healthRepository.count(),
+                healthRepository.countByPriorityBand("HIGH"),
+                healthRepository.sumActiveClinics(),
                 housingRepository.count(),
                 health.isEmpty() ? null : health.getFirst(),
                 housing.isEmpty() ? null : housing.getFirst(),
@@ -59,6 +66,14 @@ public class InsightService {
                 .orElseThrow(() -> notFound("health-access", region));
     }
 
+    @Cacheable(value = "health-specialties", key = "#region")
+    public List<HealthSpecialtyResponse> healthSpecialties(String region) {
+        healthRegion(region);
+        return specialtyRepository.findByRegionOrderByDiseaseRankAsc(region).stream()
+                .map(HealthSpecialtyResponse::from)
+                .toList();
+    }
+
     @Cacheable(value = "housing-region", key = "#region")
     public HousingMarketResponse housingRegion(String region) {
         return housingRepository
@@ -72,4 +87,3 @@ public class InsightService {
                 HttpStatus.NOT_FOUND, "No " + domain + " metric found for region: " + region);
     }
 }
-

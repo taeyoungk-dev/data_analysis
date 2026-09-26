@@ -39,6 +39,11 @@ public class InsightController {
         return service.healthRegion(region);
     }
 
+    @GetMapping("/health-access/{region}/specialties")
+    public List<HealthSpecialtyResponse> healthAccessSpecialties(@PathVariable String region) {
+        return service.healthSpecialties(region);
+    }
+
     @GetMapping("/housing")
     public List<HousingMarketResponse> housing(
             @RequestParam(defaultValue = "10") @Min(1) @Max(25) int limit) {
@@ -50,4 +55,3 @@ public class InsightController {
         return service.housingRegion(region);
     }
 }
-
