@@ -2,8 +2,13 @@
 
 ## Local checks
 
-Run the Python lint/tests and the Java tests before committing. Rebuild the analytics marts whenever
-raw data or scoring logic changes; CI rejects generated CSV/SQL drift.
+Run `make check` (Ruff, pytest, Gradle tests and the Playwright dashboard E2E) before committing.
+Install the tools once with `python -m pip install -e './analytics[dev,e2e]'` and
+`python -m playwright install chromium`.
+
+Rebuild the analytics marts with `make analytics` whenever raw data or scoring logic changes; CI
+rejects generated CSV/SQL drift. V2/V3 are already-applied Flyway migrations: a data refresh for an
+existing database must be added as a new versioned migration instead of editing them.
 
 ## Commit messages
 

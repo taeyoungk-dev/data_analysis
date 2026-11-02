@@ -4,7 +4,8 @@ COPY gradle gradle
 COPY gradlew build.gradle settings.gradle ./
 RUN ./gradlew dependencies --no-daemon
 COPY src src
-RUN ./gradlew test bootJar --no-daemon
+# Tests run in CI and `make test`; the image build only packages the application.
+RUN ./gradlew bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S spring && adduser -S spring -G spring
@@ -13,5 +14,5 @@ WORKDIR /app
 COPY --from=build /workspace/build/libs/*.jar app.jar
 EXPOSE 8085
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
-  CMD wget -q -O /dev/null http://localhost:8085/actuator/health || exit 1
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+  CMD wget -q -O /dev/null http://localhost:8085/actuator/health/readiness || exit 1
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]

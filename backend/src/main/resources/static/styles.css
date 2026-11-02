@@ -164,7 +164,9 @@ th, td { padding: 13px 17px; text-align: right; border-top: 1px solid var(--line
 th:first-child, td:first-child { text-align: left; font-weight: 800; }
 th { color: var(--muted); background: rgba(223,240,232,.34); font-size: .68rem; }
 tbody tr[data-region] { cursor: pointer; }
-tbody tr[data-region]:hover { background: var(--mint); }
+tbody tr[data-region]:hover, tbody tr[data-region]:focus-visible, tbody tr[aria-current="true"] { background: var(--mint); }
+tbody tr[data-region]:focus-visible { outline: 2px solid var(--forest-soft); outline-offset: -2px; }
+.error-toast button:disabled { cursor: progress; opacity: .7; }
 
 .housing-section { color: white; background: var(--navy); }
 .section-heading.inverse .eyebrow { color: #9fc5e8; }

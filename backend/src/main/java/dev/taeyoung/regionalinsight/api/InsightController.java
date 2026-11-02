@@ -4,6 +4,7 @@ import java.util.List;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1")
 public class InsightController {
+
+    /** Matches the VARCHAR(40) region columns; longer values can never match a row. */
+    static final int MAX_REGION_LENGTH = 40;
 
     private final InsightService service;
 
@@ -35,12 +39,14 @@ public class InsightController {
     }
 
     @GetMapping("/health-access/{region}")
-    public HealthAccessResponse healthAccessRegion(@PathVariable String region) {
+    public HealthAccessResponse healthAccessRegion(
+            @PathVariable @Size(max = MAX_REGION_LENGTH) String region) {
         return service.healthRegion(region);
     }
 
     @GetMapping("/health-access/{region}/specialties")
-    public List<HealthSpecialtyResponse> healthAccessSpecialties(@PathVariable String region) {
+    public List<HealthSpecialtyResponse> healthAccessSpecialties(
+            @PathVariable @Size(max = MAX_REGION_LENGTH) String region) {
         return service.healthSpecialties(region);
     }
 
@@ -51,7 +57,8 @@ public class InsightController {
     }
 
     @GetMapping("/housing/{region}")
-    public HousingMarketResponse housingRegion(@PathVariable String region) {
+    public HousingMarketResponse housingRegion(
+            @PathVariable @Size(max = MAX_REGION_LENGTH) String region) {
         return service.housingRegion(region);
     }
 }

@@ -1,7 +1,10 @@
 package dev.taeyoung.regionalinsight.api;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,6 +54,23 @@ class InsightControllerTests {
     @Test
     void rejectsOutOfRangeLimit() throws Exception {
         mockMvc.perform(get("/api/v1/health-access").param("limit", "99"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void unexpectedErrorsReturnGenericProblemWithoutInternalDetails() throws Exception {
+        when(service.overview()).thenThrow(new IllegalStateException("jdbc:postgresql://internal-db"));
+
+        mockMvc.perform(get("/api/v1/overview"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.title").value("Internal server error"))
+                .andExpect(jsonPath("$.detail").value("An unexpected error occurred"))
+                .andExpect(content().string(not(containsString("internal-db"))));
+    }
+
+    @Test
+    void rejectsNonNumericLimit() throws Exception {
+        mockMvc.perform(get("/api/v1/housing").param("limit", "ten"))
                 .andExpect(status().isBadRequest());
     }
 }

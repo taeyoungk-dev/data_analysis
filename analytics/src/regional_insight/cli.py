@@ -7,7 +7,6 @@ from pathlib import Path
 
 from .etl import build_health_access, build_health_specialties, build_housing_market
 from .export import export_outputs
-from .model import train_baseline
 
 ANALYTICS_DIR = Path(__file__).resolve().parents[2]
 REPOSITORY_DIR = ANALYTICS_DIR.parent
@@ -55,6 +54,9 @@ def main() -> None:
     if args.command in {"build", "all"}:
         build()
     if args.command in {"train", "all"}:
+        # scikit-learn is imported lazily: it adds ~1 s of start-up time that `build` never needs.
+        from .model import train_baseline
+
         metrics = train_baseline(RAW_DIR / "seoul_apartments_2024.csv", ARTIFACT_DIR)
         print(metrics)
 

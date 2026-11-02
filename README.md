@@ -68,11 +68,11 @@ an ML benchmark, CI and a responsive dashboard.
 | Backend | Spring Boot 4.1, Spring MVC, Spring Data JPA, Bean Validation | 계층형 REST API와 입력 검증 |
 | Data / ML | pandas, scikit-learn, joblib | 정제, feature engineering, percentile scoring, 기준 모델 |
 | Database | PostgreSQL 17, H2, Flyway | 운영형 저장소, 빠른 로컬 프로필, 버전형 스키마/시드 |
-| Cache | Redis 8, Spring Cache | 조회 결과 10분 캐싱 |
+| Cache | Redis 8, Spring Cache | 조회 결과 10분 캐싱, Redis 장애 시 DB 조회로 자동 폴백 |
 | Frontend | Semantic HTML, CSS, Vanilla JS | 외부 프레임워크 없는 반응형 데이터 대시보드 |
 | DevOps | Docker Compose, Gradle, GitHub Actions | 동일 실행 환경, 빌드·테스트·생성물 drift 검사 |
-| Observability | Spring Boot Actuator | health, readiness/liveness, metrics |
-| Quality | pytest, JUnit, MockMvc, Ruff | 계산·ETL·API 계약·코드 품질 검증 |
+| Observability | Spring Boot Actuator | health, readiness/liveness (metrics는 환경변수로 선택 노출) |
+| Quality | pytest, JUnit, MockMvc, Playwright, Ruff | 계산·ETL·내보내기 검증, API 통합 테스트, 브라우저 E2E, 코드 품질 |
 
 ## 아키텍처
 
@@ -105,12 +105,19 @@ cd data_analysis
 docker compose up --build
 ```
 
-처음 실행할 때 Java/DB 이미지를 내려받으므로 몇 분 걸릴 수 있습니다. 로그에
+처음 실행할 때 Java/DB 이미지를 내려받고 애플리케이션을 빌드하므로 몇 분 걸릴 수 있습니다
+(이미지 빌드는 패키징만 하고, 테스트는 CI와 `make test`에서 실행합니다). 로그에
 `Started RegionalInsightApiApplication`이 보이면 브라우저에서 아래 주소를 엽니다.
 
 - 대시보드: [http://localhost:8085](http://localhost:8085)
 - API 헬스 체크: [http://localhost:8085/actuator/health](http://localhost:8085/actuator/health)
 - 전체 요약 API: [http://localhost:8085/api/v1/overview](http://localhost:8085/api/v1/overview)
+
+Actuator는 인증 없이 열리는 `health`, `info`만 공개합니다. 내부 지표가 필요한 환경에서는
+`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics`처럼 명시적으로 켜고, 외부에 노출하지 마세요.
+
+PostgreSQL(5432)과 Redis(6379)는 `127.0.0.1`에만 열리므로 같은 네트워크의 다른 기기에서는
+접근할 수 없습니다. 기본 비밀번호를 바꾸려면 `.env.example`을 `.env`로 복사해 값을 수정합니다.
 
 종료:
 
@@ -133,6 +140,15 @@ cd backend
 ```
 
 이 모드는 PostgreSQL·Redis를 필요로 하지 않으며 애플리케이션을 종료하면 DB가 사라집니다.
+
+### Java 없이 화면만 확인
+
+Python만 있으면 커밋된 분석 결과를 같은 API 형식으로 돌려주는 목(mock) 서버로 대시보드를 볼 수
+있습니다. UI 확인용이며 실제 Spring API를 대신하지 않습니다.
+
+```bash
+python e2e/mock_api.py   # http://127.0.0.1:8085
+```
 
 ## 분석 파이프라인 재실행
 
@@ -160,6 +176,14 @@ python -m regional_insight.cli all
 
 학습된 `*.joblib` 파일은 크기와 재현 가능성을 고려해 Git에 포함하지 않습니다.
 
+`build`는 생성 전에 데이터 무결성을 검사합니다. 필수 값이 비어 있거나(예: 2020년 거래가 없어
+CAGR을 계산할 수 없는 자치구), 지역·진료과목 키가 중복되거나, 인구 자료에 없는 지역의 의원이
+있으면 SQL을 쓰지 않고 오류로 중단합니다.
+
+> **주의:** V2·V3 seed는 이미 적용된 Flyway migration입니다. 원천 데이터가 바뀌어 다시 생성하면
+> 기존 DB에서 checksum 오류가 납니다. 로컬은 `docker compose down -v`로 초기화하고, 운영 DB에는
+> 다시 생성한 V2/V3를 적용하지 말고 변경분을 새 버전(V4 이상) migration으로 추가하세요.
+
 ## API 사용 예시
 
 ```bash
@@ -182,8 +206,12 @@ curl 'http://localhost:8085/api/v1/housing?limit=5'
 curl http://localhost:8085/api/v1/housing/서초구
 ```
 
-`limit`은 의료 API에서 1–31, 주택 API에서 1–25만 허용됩니다. 잘못된 값에는 HTTP 400,
-존재하지 않는 지역에는 HTTP 404 Problem Details 응답을 반환합니다.
+`limit`은 의료 API에서 1–31, 주택 API에서 1–25 사이의 정수만 허용합니다. 범위를 벗어나거나
+숫자가 아닌 값, 40자를 넘는 지역명에는 HTTP 400을, 존재하지 않는 지역에는 HTTP 404를
+`application/problem+json`(RFC 9457 Problem Details) 형식으로 반환합니다. 예상하지 못한 서버
+오류는 내부 메시지 없이 일반 500 응답으로 바꿔 반환합니다.
+
+점수가 같은 지역은 지역명 순으로 정렬해 항상 같은 순서로 응답합니다.
 
 ## 점수 산정 방식
 
@@ -215,25 +243,35 @@ market_heat_score =
 ## 테스트와 CI
 
 ```bash
-# Python
 source .venv/bin/activate
-ruff check analytics
-pytest analytics/tests
+python -m pip install -e './analytics[dev,e2e]'
+python -m playwright install chromium   # 브라우저 E2E를 처음 실행할 때 한 번
 
-# Java 21
-cd backend
-./gradlew test
+make lint    # ruff check analytics e2e
+make test    # pytest analytics/tests + (cd backend && ./gradlew test)
+make e2e     # pytest e2e — 실제 Chromium으로 대시보드 핵심 흐름 검증
+make check   # 위 세 가지 모두
 
 # 전체 스택 상태
 docker compose ps
 curl http://localhost:8085/actuator/health
 ```
 
+| 범위 | 위치 | 확인 내용 |
+|---|---|---|
+| 분석 단위 테스트 | `analytics/tests` | 점수 계산, ETL 조인·주소 보정, SQL 이스케이프, 무결성 검사 |
+| API 테스트 | `backend/src/test` | MockMvc 계약, H2 + 실제 Flyway seed 기반 통합 테스트, 캐시 장애 폴백, Actuator 노출 범위 |
+| 브라우저 E2E | `e2e/` | 요약·순위·상세·주택시장 표시, 검색/필터/정렬, 키보드 조작, API 실패·시간 초과·빈 데이터, 모바일 가로 스크롤 |
+
+E2E는 커밋된 분석 결과를 API와 같은 형식으로 반환하는 `e2e/mock_api.py`를 사용합니다. 화면 동작을
+검증하는 테스트이며 Java API 자체의 검증은 JUnit 테스트가 담당합니다.
+
 GitHub Actions는 pull request와 `main` push마다 다음을 확인합니다.
 
-- Python lint 및 계산/ETL 단위 테스트
+- Python lint, 계산/ETL/내보내기 단위 테스트
 - 실제 원본 데이터 재처리 후 커밋된 CSV·SQL과의 drift 여부
-- Spring context, JPA/Flyway 호환성, MockMvc API 검증
+- Spring context, JPA/Flyway 호환성, MockMvc API·통합 테스트
+- Chromium 기반 대시보드 E2E
 
 ## 프로젝트 구조
 
@@ -251,8 +289,9 @@ data_analysis/
 │   ├── src/main/resources/
 │   │   ├── db/migration/        # Flyway schema + generated seed
 │   │   └── static/              # 반응형 대시보드
-│   ├── src/test/                # JUnit + MockMvc
+│   ├── src/test/                # JUnit, MockMvc, H2 통합 테스트
 │   └── Dockerfile               # non-root Java 21 runtime
+├── e2e/                         # Playwright 브라우저 테스트 + 계약 호환 mock API
 ├── docs/                        # architecture, data dictionary
 ├── .github/workflows/ci.yml
 └── docker-compose.yml           # PostgreSQL + Redis + API
@@ -273,11 +312,11 @@ CSV만 선별했고, 로컬 절대경로·체크포인트·중복 파일·직렬
 ## 포트폴리오에서 강조할 수 있는 역량
 
 - **Data Engineering:** 서로 다른 인코딩과 스키마의 공공데이터를 정규화하고 결정적 mart로 생성
-- **Backend Engineering:** Spring 계층 분리, JPA, validation, 오류 계약, Redis 캐시, Actuator
+- **Backend Engineering:** Spring 계층 분리, JPA, validation, Problem Details 오류 계약, 장애 허용 Redis 캐시, Actuator
 - **Database:** Flyway 기반 schema evolution, PostgreSQL/H2 profile 분리, 인덱스 설계
 - **Machine Learning:** 재현 가능한 holdout, pipeline 전처리, MAE/R² 기록, 한계 명시
 - **Cloud-ready Delivery:** multi-stage/non-root container, Compose orchestration, health checks, CI
-- **Security Hygiene:** 저장소 내 credential 제거, 환경변수 기반 설정, 최소 Actuator 노출
+- **Security Hygiene:** 저장소 내 credential 제거, 환경변수 기반 설정, 최소 Actuator 노출(health·info), 내부 오류 메시지 비노출, DB·Redis 포트 localhost 바인딩
 
 이력서 한 줄 예시:
 

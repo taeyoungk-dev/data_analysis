@@ -19,7 +19,7 @@ jobs:
           cache: pip
           cache-dependency-path: analytics/pyproject.toml
       - run: python -m pip install -e './analytics[dev]'
-      - run: ruff check analytics
+      - run: ruff check analytics e2e
       - run: pytest analytics/tests
       - run: python -m regional_insight.cli build
       - run: git diff --exit-code -- analytics/data/processed backend/src/main/resources/db/migration
@@ -36,3 +36,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - working-directory: backend
         run: ./gradlew test --no-daemon
+
+  dashboard-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: analytics/pyproject.toml
+      - run: python -m pip install -e './analytics[e2e]'
+      - run: python -m playwright install --with-deps chromium
+      - run: pytest e2e

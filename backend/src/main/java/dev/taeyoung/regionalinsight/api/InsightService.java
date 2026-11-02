@@ -3,6 +3,7 @@ package dev.taeyoung.regionalinsight.api;
 import java.util.List;
 
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,13 @@ import dev.taeyoung.regionalinsight.housing.HousingMarketRepository;
 
 @Service
 public class InsightService {
+
+    // Region is the tie-breaker so equal scores keep the same, deterministic order as the
+    // analytics marts instead of depending on the database's physical row order.
+    private static final Sort HEALTH_RANKING = Sort.by(
+            Sort.Order.desc("priorityScore"), Sort.Order.asc("region"));
+    private static final Sort HOUSING_RANKING = Sort.by(
+            Sort.Order.desc("marketHeatScore"), Sort.Order.asc("region"));
 
     private final HealthAccessRepository healthRepository;
     private final HealthSpecialtyRepository specialtyRepository;
@@ -44,16 +52,14 @@ public class InsightService {
 
     @Cacheable(value = "health", key = "#limit")
     public List<HealthAccessResponse> health(int limit) {
-        return healthRepository.findAll(Sort.by(Sort.Direction.DESC, "priorityScore")).stream()
-                .limit(limit)
+        return healthRepository.findAll(PageRequest.of(0, limit, HEALTH_RANKING)).stream()
                 .map(HealthAccessResponse::from)
                 .toList();
     }
 
     @Cacheable(value = "housing", key = "#limit")
     public List<HousingMarketResponse> housing(int limit) {
-        return housingRepository.findAll(Sort.by(Sort.Direction.DESC, "marketHeatScore")).stream()
-                .limit(limit)
+        return housingRepository.findAll(PageRequest.of(0, limit, HOUSING_RANKING)).stream()
                 .map(HousingMarketResponse::from)
                 .toList();
     }

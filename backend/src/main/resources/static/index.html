@@ -6,7 +6,7 @@
   <meta name="description" content="경기도 고령층 의료 접근성과 서울 주택시장을 비교하는 공공데이터 대시보드">
   <meta name="theme-color" content="#12372f">
   <title>Regional Insight Korea</title>
-  <link rel="stylesheet" href="/styles.css?v=20260927-1">
+  <link rel="stylesheet" href="/styles.css?v=20261102-1">
 </head>
 <body>
   <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -48,7 +48,7 @@
         <aside class="hero-signal" aria-labelledby="heroSignalTitle">
           <div class="signal-topline">
             <span>현재 우선 확인 지역</span>
-            <span class="band high">높음</span>
+            <span class="band" id="heroBand">—</span>
           </div>
           <h2 id="heroSignalTitle">데이터를 불러오는 중입니다</h2>
           <div class="signal-score">
@@ -107,7 +107,7 @@
               <option value="region">지역명 순</option>
             </select>
           </label>
-          <p class="result-count" id="resultCount" aria-live="polite">—</p>
+          <p class="result-count" id="resultCount" role="status" aria-live="polite">—</p>
         </div>
 
         <div class="explorer-grid">
@@ -132,7 +132,7 @@
               <div><span class="kicker">비교 목록</span><h3>지역 순위</h3></div>
               <span class="caption">지역을 선택해 상세 보기</span>
             </div>
-            <div class="ranking-list" id="healthRanking" aria-live="polite">
+            <div class="ranking-list" id="healthRanking">
               <p class="loading">데이터를 불러오는 중입니다.</p>
             </div>
           </article>
@@ -249,6 +249,6 @@
     <button id="retryButton" type="button">다시 시도</button>
   </div>
   <noscript>이 대시보드는 데이터를 표시하기 위해 JavaScript가 필요합니다.</noscript>
-  <script src="/app.js?v=20260927-1" defer></script>
+  <script src="/app.js?v=20261102-1" defer></script>
 </body>
 </html>

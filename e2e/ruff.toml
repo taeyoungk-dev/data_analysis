@@ -1,0 +1,4 @@
+extend = "../analytics/pyproject.toml"
+
+[lint.isort]
+known-first-party = ["mock_api"]

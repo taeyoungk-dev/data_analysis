@@ -1,17 +1,23 @@
 const integer = new Intl.NumberFormat("ko-KR");
 const svgNamespace = "http://www.w3.org/2000/svg";
+const REQUEST_TIMEOUT_MS = 10_000;
+const HEALTH_LIMIT = 31;
+const HOUSING_LIMIT = 25;
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 const state = {
   health: [],
   housing: [],
   selectedRegion: null,
   specialtyRequest: 0,
+  loading: false,
 };
 
 const elements = {
   statusDot: document.querySelector("#statusDot"),
   apiStatus: document.querySelector("#apiStatus"),
   errorToast: document.querySelector("#errorToast"),
+  retryButton: document.querySelector("#retryButton"),
   regionSearch: document.querySelector("#regionSearch"),
   bandFilter: document.querySelector("#bandFilter"),
   healthSort: document.querySelector("#healthSort"),
@@ -51,9 +57,35 @@ const bandMeta = (band) => ({
 }[band] || { label: band, className: "", color: "#63706b" });
 
 async function fetchJson(url) {
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
-  return response.json();
+  // A stalled connection must not leave the dashboard in a permanent loading state.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function message(text) {
+  const element = document.createElement("p");
+  element.className = "loading";
+  element.textContent = text;
+  return element;
+}
+
+function tableMessage(text, columns) {
+  const row = document.createElement("tr");
+  const cell = document.createElement("td");
+  cell.colSpan = columns;
+  cell.textContent = text;
+  row.append(cell);
+  return row;
 }
 
 function setApiStatus(online) {
@@ -65,6 +97,17 @@ function setApiStatus(online) {
 function showError(error) {
   setApiStatus(false);
   elements.errorToast.hidden = false;
+  const text = "데이터를 불러오지 못했습니다. 오른쪽 아래의 다시 시도를 눌러 주세요.";
+  if (state.health.length === 0) {
+    elements.resultCount.textContent = "—";
+    elements.healthRanking.replaceChildren(message(text));
+    elements.healthTable.replaceChildren(tableMessage(text, 7));
+    elements.specialtyList.replaceChildren(message("진료과목 데이터를 불러오지 못했습니다."));
+  }
+  if (state.housing.length === 0) {
+    setText("#housingLeaderMeta", text);
+    document.querySelector("#housingTable").replaceChildren(tableMessage(text, 6));
+  }
   console.error(error);
 }
 
@@ -80,6 +123,10 @@ function updateOverview(overview) {
 
   const leader = overview.highestHealthPriority;
   if (leader) {
+    const heroBand = document.querySelector("#heroBand");
+    const meta = bandMeta(leader.priorityBand);
+    heroBand.className = `band ${meta.className}`;
+    heroBand.textContent = meta.label;
     setText("#heroSignalTitle", leader.region);
     setText("#heroPriorityScore", Number(leader.priorityScore).toFixed(1));
     setText("#heroElderlyShare", `${Number(leader.elderlySharePct).toFixed(1)}%`);
@@ -115,10 +162,8 @@ function createBand(label) {
 
 function renderRanking(items) {
   if (items.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "loading";
-    empty.textContent = "조건에 맞는 지역이 없습니다.";
-    elements.healthRanking.replaceChildren(empty);
+    const text = state.health.length ? "조건에 맞는 지역이 없습니다. 검색어나 우선 구간을 바꿔 보세요." : "표시할 지역 데이터가 없습니다.";
+    elements.healthRanking.replaceChildren(message(text));
     return;
   }
 
@@ -127,6 +172,7 @@ function renderRanking(items) {
     button.type = "button";
     button.className = "rank-button";
     button.classList.toggle("selected", item.region === state.selectedRegion);
+    button.setAttribute("aria-pressed", String(item.region === state.selectedRegion));
     button.dataset.region = item.region;
 
     const rank = document.createElement("span");
@@ -158,6 +204,13 @@ function renderRanking(items) {
 
 function showMapTooltip(event, item) {
   const wrap = elements.healthMap.parentElement.getBoundingClientRect();
+  // Keyboard focus has no pointer coordinates; anchor the tooltip to the focused point instead.
+  let { clientX, clientY } = event;
+  if (!Number.isFinite(clientX) || event.type === "focus") {
+    const point = event.currentTarget.getBoundingClientRect();
+    clientX = point.left + point.width / 2;
+    clientY = point.top;
+  }
   elements.mapTooltip.innerHTML = "";
   const title = document.createElement("strong");
   title.textContent = item.region;
@@ -167,8 +220,8 @@ function showMapTooltip(event, item) {
   supply.textContent = `1만 명당 의원 ${Number(item.clinicsPer10kElderly).toFixed(1)}곳`;
   elements.mapTooltip.append(title, score, supply);
   elements.mapTooltip.hidden = false;
-  elements.mapTooltip.style.left = `${Math.min(event.clientX - wrap.left + 14, wrap.width - 170)}px`;
-  elements.mapTooltip.style.top = `${Math.max(event.clientY - wrap.top - 30, 8)}px`;
+  elements.mapTooltip.style.left = `${Math.max(8, Math.min(clientX - wrap.left + 14, wrap.width - 170))}px`;
+  elements.mapTooltip.style.top = `${Math.max(clientY - wrap.top - 30, 8)}px`;
 }
 
 function renderMap(visibleItems) {
@@ -241,9 +294,17 @@ function renderMap(visibleItems) {
 }
 
 function renderHealthTable(items) {
+  if (items.length === 0) {
+    const text = state.health.length ? "조건에 맞는 지역이 없습니다." : "표시할 지역 데이터가 없습니다.";
+    elements.healthTable.replaceChildren(tableMessage(text, 7));
+    return;
+  }
   const rows = items.map((item) => {
     const row = document.createElement("tr");
     row.dataset.region = item.region;
+    row.tabIndex = 0;
+    row.setAttribute("aria-label", `${item.region} 상세 보기`);
+    if (item.region === state.selectedRegion) row.setAttribute("aria-current", "true");
     const values = [
       item.region,
       `${Number(item.elderlySharePct).toFixed(1)}%`,
@@ -261,6 +322,12 @@ function renderHealthTable(items) {
     bandCell.append(createBand(item.priorityBand));
     row.append(bandCell);
     row.addEventListener("click", () => selectRegion(item.region, true));
+    row.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectRegion(item.region, true);
+      }
+    });
     return row;
   });
   elements.healthTable.replaceChildren(...rows);
@@ -301,13 +368,11 @@ function updateDetail(item) {
 
 function renderSpecialties(items) {
   if (!items.length) {
-    const empty = document.createElement("p");
-    empty.className = "loading";
-    empty.textContent = "진료과목 데이터가 없습니다.";
-    elements.specialtyList.replaceChildren(empty);
+    elements.specialtyList.replaceChildren(message("이 지역의 진료과목 데이터가 없습니다."));
+    setText("#specialtySource", "—");
     return;
   }
-  const maxDemand = Math.max(...items.map((item) => Number(item.diseaseSharePct)));
+  const maxDemand = Math.max(...items.map((item) => Number(item.diseaseSharePct)), 1);
   const maxSupply = Math.max(...items.map((item) => Number(item.clinicsPer10kElderly)), 1);
   const rows = items.map((item) => {
     const row = document.createElement("div");
@@ -323,7 +388,7 @@ function renderSpecialties(items) {
       track.className = "mini-track";
       const fill = document.createElement("span");
       fill.className = `mini-fill${supply ? " supply" : ""}`;
-      fill.style.width = `${Math.max(2, Number(value) / maximum * 100)}%`;
+      fill.style.width = `${Math.min(100, Math.max(2, Number(value) / maximum * 100))}%`;
       track.append(fill);
       const label = document.createElement("span");
       label.className = "mini-value";
@@ -345,19 +410,15 @@ function renderSpecialties(items) {
 
 async function loadSpecialties(region) {
   const requestId = ++state.specialtyRequest;
-  const loading = document.createElement("p");
-  loading.className = "loading";
-  loading.textContent = "진료과목 데이터를 불러오는 중입니다.";
-  elements.specialtyList.replaceChildren(loading);
+  elements.specialtyList.replaceChildren(message("진료과목 데이터를 불러오는 중입니다."));
   try {
     const items = await fetchJson(`/api/v1/health-access/${encodeURIComponent(region)}/specialties`);
     if (requestId === state.specialtyRequest) renderSpecialties(items);
   } catch (error) {
     if (requestId !== state.specialtyRequest) return;
-    const message = document.createElement("p");
-    message.className = "loading";
-    message.textContent = "진료과목 데이터를 불러오지 못했습니다.";
-    elements.specialtyList.replaceChildren(message);
+    elements.specialtyList.replaceChildren(
+      message("진료과목 데이터를 불러오지 못했습니다. 지역을 다시 선택해 주세요."),
+    );
     console.error(error);
   }
 }
@@ -370,12 +431,19 @@ function selectRegion(region, scrollToDetail = false) {
   renderHealthExplorer();
   loadSpecialties(region);
   if (scrollToDetail) {
-    document.querySelector("#regionDetail").scrollIntoView({ behavior: "smooth", block: "start" });
+    document.querySelector("#regionDetail").scrollIntoView({
+      behavior: reducedMotion.matches ? "auto" : "smooth",
+      block: "start",
+    });
   }
 }
 
 function renderHousing(items) {
-  if (!items.length) return;
+  if (!items.length) {
+    setText("#housingLeaderMeta", "표시할 주택시장 데이터가 없습니다.");
+    document.querySelector("#housingTable").replaceChildren(tableMessage("데이터가 없습니다.", 6));
+    return;
+  }
   const leader = items[0];
   setText("#housingLeader", leader.region);
   setText("#housingLeaderScore", `${Number(leader.marketHeatScore).toFixed(1)}점`);
@@ -393,7 +461,7 @@ function renderHousing(items) {
     track.className = "housing-track";
     const fill = document.createElement("span");
     fill.className = "housing-fill";
-    fill.style.width = `${Number(item.marketHeatScore)}%`;
+    fill.style.width = `${Math.min(100, Math.max(0, Number(item.marketHeatScore)))}%`;
     track.append(fill);
     const value = document.createElement("span");
     value.textContent = Number(item.marketHeatScore).toFixed(0);
@@ -422,29 +490,41 @@ function renderHousing(items) {
 }
 
 async function loadDashboard() {
+  if (state.loading) return; // ignore repeated retry clicks while a request is in flight
+  state.loading = true;
+  elements.retryButton.disabled = true;
   hideError();
   elements.apiStatus.textContent = "연결 확인 중";
   elements.statusDot.classList.remove("online", "offline");
   try {
     const [overview, health, housing] = await Promise.all([
       fetchJson("/api/v1/overview"),
-      fetchJson("/api/v1/health-access?limit=31"),
-      fetchJson("/api/v1/housing?limit=10"),
+      fetchJson(`/api/v1/health-access?limit=${HEALTH_LIMIT}`),
+      fetchJson(`/api/v1/housing?limit=${HOUSING_LIMIT}`),
     ]);
     state.health = health;
     state.housing = housing;
     updateOverview(overview);
     renderHousing(housing);
     setApiStatus(true);
-    selectRegion(health[0].region);
+    const selected = health.find((item) => item.region === state.selectedRegion) ?? health[0];
+    if (selected) {
+      selectRegion(selected.region);
+    } else {
+      renderHealthExplorer();
+      elements.specialtyList.replaceChildren(message("표시할 진료과목 데이터가 없습니다."));
+    }
   } catch (error) {
     showError(error);
+  } finally {
+    state.loading = false;
+    elements.retryButton.disabled = false;
   }
 }
 
 [elements.regionSearch, elements.bandFilter, elements.healthSort].forEach((control) => {
   control.addEventListener(control === elements.regionSearch ? "input" : "change", renderHealthExplorer);
 });
-document.querySelector("#retryButton").addEventListener("click", loadDashboard);
+elements.retryButton.addEventListener("click", loadDashboard);
 
 loadDashboard();

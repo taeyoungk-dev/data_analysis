@@ -10,6 +10,7 @@ from .scoring import health_priority_score, market_heat_score, priority_band
 
 ACTIVE_CLINIC_STATUSES = {"영업/정상", "영업중"}
 ADDRESS_REGION_PATTERN = r"^경기도\s+([^\s]+(?:시|군))"
+APARTMENT_COLUMNS = ["거래금액", "년", "시군구", "아파트", "전용면적"]
 
 
 def _number(series: pd.Series) -> pd.Series:
@@ -58,6 +59,10 @@ def _load_active_clinics(path: Path) -> pd.DataFrame:
 def build_health_access(population_path: Path, clinics_path: Path) -> pd.DataFrame:
     population = _load_population(population_path)
     active = _load_active_clinics(clinics_path)
+    unmatched = sorted(set(active["region"].dropna()) - set(population["region"]))
+    if unmatched:
+        # A silent left join would drop these clinics and understate supply for real regions.
+        raise ValueError(f"Active clinics reference regions missing from population: {unmatched}")
     clinic_counts = active.groupby("region", as_index=False).size()
     clinic_counts.columns = ["region", "active_clinics"]
     coordinates = (
@@ -135,8 +140,8 @@ def build_health_specialties(
 def build_housing_market(apartment_paths: list[Path]) -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
     for path in apartment_paths:
-        frame = pd.read_csv(path, encoding="cp949")
-        frames.append(frame)
+        # Only five of the fifteen source columns are used; skipping the rest halves parse time.
+        frames.append(pd.read_csv(path, encoding="cp949", usecols=APARTMENT_COLUMNS))
     apartments = pd.concat(frames, ignore_index=True)
     apartments["year"] = _number(apartments["년"])
     apartments["trade_price_krw"] = _number(apartments["거래금액"]) * 10_000

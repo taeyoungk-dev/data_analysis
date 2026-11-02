@@ -15,6 +15,44 @@ def _sql_number(value: object) -> str:
     return "NULL" if pd.isna(value) else str(value)
 
 
+# Columns loaded into NOT NULL database columns. A NaN here would be written as the bare token
+# `nan`, producing a migration that fails only when Flyway runs it, so reject it at build time.
+REQUIRED_COLUMNS = {
+    "health_access": [
+        "region", "population", "elderly_population", "active_clinics", "elderly_share_pct",
+        "clinics_per_10k_elderly", "priority_score", "priority_band", "period",
+    ],
+    "housing_market": [
+        "region", "transaction_count", "median_trade_price_krw", "median_price_per_sqm_krw",
+        "median_area_sqm", "price_cagr_pct", "market_heat_score", "market_band", "period",
+    ],
+    "health_specialties": [
+        "region", "specialty", "disease_rank", "patient_count", "share_pct", "active_clinics",
+        "clinics_per_10k_elderly", "source_scope", "source_period",
+    ],
+}
+
+
+def validate_marts(marts: dict[str, pd.DataFrame]) -> None:
+    """Fail fast when a mart cannot be loaded into the NOT NULL / UNIQUE database schema."""
+    for name, frame in marts.items():
+        columns = REQUIRED_COLUMNS[name]
+        missing = [column for column in columns if column not in frame]
+        if missing:
+            raise ValueError(f"{name} is missing columns: {missing}")
+        nulls = frame[columns].isna().sum()
+        nulls = nulls[nulls > 0]
+        if not nulls.empty:
+            raise ValueError(f"{name} has empty values: {nulls.to_dict()}")
+    for name, key in (
+        ("health_access", ["region"]),
+        ("housing_market", ["region"]),
+        ("health_specialties", ["region", "specialty"]),
+    ):
+        if marts[name].duplicated(key).any():
+            raise ValueError(f"{name} has duplicate {key} rows")
+
+
 def export_outputs(
     health: pd.DataFrame,
     housing: pd.DataFrame,
@@ -23,6 +61,9 @@ def export_outputs(
     migration_path: Path,
     specialty_migration_path: Path,
 ) -> None:
+    validate_marts(
+        {"health_access": health, "housing_market": housing, "health_specialties": specialties}
+    )
     processed_dir.mkdir(parents=True, exist_ok=True)
     migration_path.parent.mkdir(parents=True, exist_ok=True)
     health.to_csv(processed_dir / "health_access.csv", index=False, encoding="utf-8")

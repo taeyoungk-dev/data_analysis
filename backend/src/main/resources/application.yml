@@ -17,20 +17,32 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      timeout: 2s
+      # Cache failures fall back to the database (see CacheConfig), so fail fast instead of
+      # holding the request open when Redis is unavailable.
+      timeout: 1s
+      connect-timeout: 1s
       repositories:
         enabled: false
+  web:
+    resources:
+      cache:
+        # Static assets are revalidated with Last-Modified (cheap 304s) so a redeploy is picked
+        # up immediately without relying on manual cache-busting query strings.
+        cachecontrol:
+          no-cache: true
 
 server:
   port: ${PORT:8085}
-  error:
-    include-message: always
+  compression:
+    enabled: true
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        # Metrics reveal internal runtime details and have no authentication in front of them.
+        # Opt in per environment, e.g. MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics
+        include: health,info
   endpoint:
     health:
       probes:
